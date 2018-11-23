@@ -177,7 +177,7 @@ void initTimer(void){
 	TCNT1 = 0;
 	
 	// initialize compare value for 1 sec timer 500
-	OCR1A = 500;
+	OCR1A = 1000;
 	
 	//Timer 2
 	
@@ -485,7 +485,7 @@ void handleStatusLed(uint16_t temp){
 	}
 	ledState=!ledState;
 	//Start 1 sec timer
-	startSoftTimer(&timerLED, 1);
+	startSoftTimer(&timerLED, 0);
 	
 }
 
