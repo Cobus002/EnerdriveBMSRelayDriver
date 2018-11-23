@@ -11,7 +11,7 @@
 #include "EN_GPIO.h"
 
 //Temperature values for the temp sensor
-#define	TEMP_3C		(uint8_t)109
+#define TEMP_3C		(uint8_t)109
 #define TEMP_35C	(uint8_t)190
 #define TEMP_45C	(uint8_t)210
 #define TEMP_55C	(uint8_t)230
