@@ -115,6 +115,7 @@ int main(void)
 	initSoftTimer(&timer6);
 	initSoftTimer(&timerLED);
 	
+	//Pointer for program 2 counter
 	int* prog2Count;
 	(*prog2Count) = 0;
 	
