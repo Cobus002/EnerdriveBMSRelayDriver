@@ -116,8 +116,7 @@ int main(void)
 	initSoftTimer(&timerLED);
 	
 	//Pointer for program 2 counter
-	int* prog2Count;
-	(*prog2Count) = 0;
+	int prog2Count = 0;
 	
 	
 	//Test the LEDs on startup
@@ -144,7 +143,7 @@ int main(void)
 		}
 		
 		if(timer2.tickDone){
-			handleProgram2(!in2PinState, prog2Count);
+			handleProgram2(!in2PinState, &prog2Count);
 		}
 		
 		handleProgram3(tempVal);
