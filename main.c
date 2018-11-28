@@ -236,13 +236,24 @@ void handleProgram1(uint8_t in1PinState, uint8_t in2PinState){
 	//Check the state of program 1
 	switch(prog1State){
 		case S0:
+		if( !(in1PinState && in2PinState)){
+			//One or both of the inputs are low
+			startSoftTimer(&timer1, 15);	//Start software timer for 15sec
+			prog1State = S1;
+		}
+		break;
+		case S1:
 			if( !(in1PinState && in2PinState)){
 				//One or both of the inputs are low
-				startSoftTimer(&timer1, 15);	//Start software timer for 15sec
-				prog1State = S1;
+				startSoftTimer(&timer1, 1);	//Start software timer for 1sec
+				prog1State = S2;
+			}else{
+				//The inputs are high again, start timer and go back to S0
+				startSoftTimer(&timer1, 1);
+				prog1State = S0;
 			}
 			break;
-		case S1:
+		case S2:
 			//Write TOR1 & 2 and  Outputs 1,2 & 3 high
 			writeRelayOutput(EN_GPIO_TOR_1, 1);
 			writeRelayOutput(EN_GPIO_TOR_2, 1);
@@ -251,20 +262,20 @@ void handleProgram1(uint8_t in1PinState, uint8_t in2PinState){
 			writeRelayOutput(EN_GPIO_OUTPUT_3, 1);
 			//Delay 15 sec, then go to state 2
 			startSoftTimer(&timer1, 15);
-			prog1State = S2;
+			prog1State = S3;
 			break;
 			
-		case S2:
+		case S3:
 			//Pulse orange relay 
 			writeBatteryLatch(LATCH_ORANGE, 1);
 			_delay_ms(1000);
 			writeBatteryLatch(LATCH_ORANGE, 0);
 			//Delay 15 sec, then go to state 3
 			startSoftTimer(&timer1, 15);
-			prog1State = S3;
+			prog1State = S4;
 			break;
 		
-		case S3:
+		case S4:
 			//Write TOR1 & 2 and  Outputs 1,2 & 3 high
 			writeRelayOutput(EN_GPIO_TOR_1, 0);
 			writeRelayOutput(EN_GPIO_TOR_2, 0);
@@ -272,22 +283,22 @@ void handleProgram1(uint8_t in1PinState, uint8_t in2PinState){
 			writeRelayOutput(EN_GPIO_OUTPUT_2, 0);
 			//Delay 6min, then go to state 4
 			startSoftTimer(&timer1, 60*6);
-			prog1State = S4;
-			break;
-		
-		case S4:
-			if(!(in1PinState && in2PinState)){
-				//Input still low, go back to state 1
-				startSoftTimer(&timer1, 2);
-				prog1State = S1;
-			}else{
-				//Delay 15min and then go to state 5
-				startSoftTimer(&timer1, 60*15);
-				prog1State = S5;
-			}
+			prog1State = S5;
 			break;
 		
 		case S5:
+			if(!(in1PinState && in2PinState)){
+				//Input still low, go back to state 2
+				startSoftTimer(&timer1, 2);
+				prog1State = S2;
+			}else{
+				//Delay 15min and then go to state 6
+				startSoftTimer(&timer1, 60*15);
+				prog1State = S6;
+			}
+			break;
+		
+		case S6:
 			//pulse latch relay brown
 			writeBatteryLatch(LATCH_BROWN, 1);
 			_delay_ms(1000);
@@ -306,16 +317,28 @@ void handleProgram2(uint8_t in3PinState, int* prog2Count){
 	switch(prog2State){
 		case S0:
 			if(!(in3PinState)){
-				//Set the prog2 count to 0
-				(*prog2Count) = 0;
-				//Start soft timer for 5 sec
+				//Input 3 is low, start timer and go to state 1
 				startSoftTimer(&timer2, 5);
-				//Go to next state
 				prog2State = S1;
 			}
 			break;
 		
 		case S1:
+			if(!(in3PinState)){
+				//Set the prog2 count to 0
+				(*prog2Count) = 0;
+				//Start soft timer for 1 sec
+				startSoftTimer(&timer2, 1);
+				//Go to next state
+				prog2State = S2;
+			}else{
+				//Input 3 is High again, start timer and go back to state 0
+				startSoftTimer(&timer2, 1);
+				prog2State = S0;
+			}
+			break;
+		
+		case S2:
 			if((*prog2Count)<10){
 				//Turn on TOR 1&2, and OUTPUT 1&2
 				writeRelayOutput(EN_GPIO_TOR_1, 1);
@@ -327,7 +350,7 @@ void handleProgram2(uint8_t in3PinState, int* prog2Count){
 				//Start soft timer for 1 min 
 				startSoftTimer(&timer2, 60*1);
 				//Stay in current state
-				prog2State = S1;
+				prog2State = S2;
 			}else if(!(in3PinState)){
 				//Still low
 				//Reset prog counter and stay in current state
@@ -341,6 +364,7 @@ void handleProgram2(uint8_t in3PinState, int* prog2Count){
 				writeRelayOutput(EN_GPIO_OUTPUT_2, 0);
 				//Start soft timer for 2 sec
 				startSoftTimer(&timer2, 2);
+				//Go back to state 0
 				prog2State = S0; 
 			}
 			break;
