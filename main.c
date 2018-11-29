@@ -66,7 +66,7 @@ void startSoftTimer(Timer* softTimer, uint16_t seconds);
 void updateSoftTimer(Timer* softTimer);
 
 //Handle the programs
-void handleProgram1(uint8_t in1PinState, uint8_t in2PinState);
+void handleProgram1(uint8_t in1PinState, uint8_t in2PinState, int* prog1Count);
 
 void handleProgram2(uint8_t in3PinState, int* prog2Count);
 
@@ -115,8 +115,10 @@ int main(void)
 	initSoftTimer(&timer6);
 	initSoftTimer(&timerLED);
 	
-	//Pointer for program 2 counter
+	//Program 1 and program 2 counters
+	int prog1Count = 0;
 	int prog2Count = 0;
+	
 	
 	
 	//Test the LEDs on startup
@@ -139,7 +141,7 @@ int main(void)
 		_delay_ms(1);
 		
 		if(timer1.tickDone){
-			handleProgram1(!in0PinState, !in1PinState); //Flip sign since 0 is On and 1 is off
+			handleProgram1(!in0PinState, !in1PinState, &prog1Count); //Flip sign since 0 is On and 1 is off
 		}
 		
 		if(timer2.tickDone){
@@ -231,7 +233,7 @@ ISR(TIMER1_COMPA_vect){
 }
 
 
-void handleProgram1(uint8_t in1PinState, uint8_t in2PinState){
+void handleProgram1(uint8_t in1PinState, uint8_t in2PinState, int* prog1Count){
 	//Check the state of program 1
 	switch(prog1State){
 		case S0:
@@ -291,22 +293,40 @@ void handleProgram1(uint8_t in1PinState, uint8_t in2PinState){
 				startSoftTimer(&timer1, 2);
 				prog1State = S2;
 			}else{
-				//Delay 15min and then go to state 6
-				startSoftTimer(&timer1, 60*15);
+				//Set prog1Count = 0
+				(*prog1Count) = 0;
+				//Delay 1 sec and go to state 6
+				startSoftTimer(&timer1, 1);
 				prog1State = S6;
 			}
 			break;
 		
 		case S6:
-			//pulse latch relay brown
-			writeBatteryLatch(LATCH_BROWN, 1);
-			_delay_ms(1000);
-			writeBatteryLatch(LATCH_BROWN, 0);
-			//Turn off OUTPUT 3
-			writeRelayOutput(EN_GPIO_OUTPUT_3, 0);
-			//Go back to state 0
-			startSoftTimer(&timer1, 2);
-			prog1State = S0;
+			if ((*prog1Count)<15){
+				//Check the inputs
+				if(!(in1PinState && in2PinState)){
+					//The inputs have gone low again go back to state 2
+					startSoftTimer(&timer1, 15);
+					prog1State = S2;
+				}else{
+					//Still High so increment prog1Count, delay and stay in state
+					(*prog1Count)++;
+					startSoftTimer(&timer1, 60*1);
+					prog1State = S6;
+				}
+			}else{
+				//pulse latch relay brown
+				writeBatteryLatch(LATCH_BROWN, 1);
+				_delay_ms(1000);
+				writeBatteryLatch(LATCH_BROWN, 0);
+				//Turn off OUTPUT 3
+				writeRelayOutput(EN_GPIO_OUTPUT_3, 0);
+				//Go back to state 0
+				startSoftTimer(&timer1, 2);
+				prog1State = S0;
+				
+			}
+			
 			break;
 	}
 }
