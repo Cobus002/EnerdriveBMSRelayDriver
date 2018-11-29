@@ -24,10 +24,6 @@ typedef enum {OUTPUT_1, OUTPUT_2, OUTPUT_3, OUTPUT_4, TOR_1, TOR_2, LATCH_ORANGE
 #define EN_GPIO_LATCH_0		(uint8_t)10
 #define EN_GPIO_LATCH_1		(uint8_t)11
 
-//Prog modes
-#define EN_PROGRAM_A		1
-#define EN_PROGRAM_B		0
-
 //Available output states
 #define EN_OUTPUT_HIGH		(uint8_t)1
 #define EN_OUTPUT_LOW		(uint8_t)0

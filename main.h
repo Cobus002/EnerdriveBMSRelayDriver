@@ -4,6 +4,10 @@
 //Comment out the line below to disable pulsing of brown relay in program 1
 #define RE_ENABLE_LATCH_RELAY 1
 
+//Prog modes
+#define EN_MODE_A		1
+#define EN_MODE_B		2
+
 //Temperature values for the temp sensor
 #define TEMP_3C		(uint8_t)109
 #define TEMP_35C	(uint8_t)190

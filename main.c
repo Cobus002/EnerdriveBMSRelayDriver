@@ -31,11 +31,13 @@ int main(void)
 	sei();
 	
 	//Variables to store the input results
-	uint8_t inModePinState = EN_INPUT_HIGH;
+	uint8_t inModePinState = EN_MODE_A;
 	uint8_t in0PinState = EN_INPUT_HIGH;
 	uint8_t in1PinState = EN_INPUT_HIGH;
 	uint8_t in2PinState = EN_INPUT_HIGH;
 	uint8_t combined0And1PinState = EN_INPUT_HIGH;
+	
+	uint8_t currentMode = EN_MODE_A;
 	
 	//Make sure the timers are in the inactive state
 	initSoftTimer(&timer1);
@@ -81,7 +83,11 @@ int main(void)
 		}
 		
 		//Check the mode switch and if in prog B then disable temperature sensor routines
-		if(inModePinState == EN_PROGRAM_A){
+		if(inModePinState == EN_MODE_A){
+			if(currentMode != EN_MODE_A){
+				//Set the current mode to A
+				currentMode = EN_MODE_A;
+			}
 			//In program A so execute temperature routines
 			if(timer3.tickDone){
 				handleProgram3(tempVal);
@@ -99,14 +105,31 @@ int main(void)
 				handleProgram6(tempVal);
 			}
 			
-			if(timerLED.tickDone){
-				handleStatusLed(tempVal);
-			}
 		}else{
-			//Ensure all the temperature sensative routine states are in state S0 for status LED
-			prog3State = S0;
-			prog4State = S0;
-			prog5State = S0;
+			//Switch is in MODE B position
+			if(currentMode != EN_MODE_B){
+				//Only want to set this once
+				writeLEDOutput(0,0,0);
+				//TURN OFF TOR 1&2 and OUTPUTS 1,2,3 and 4
+				writeRelayOutput(EN_GPIO_TOR_1, 0);
+				writeRelayOutput(EN_GPIO_TOR_2, 0);
+				writeRelayOutput(EN_GPIO_OUTPUT_1, 0);
+				writeRelayOutput(EN_GPIO_OUTPUT_2, 0);
+				writeRelayOutput(EN_GPIO_OUTPUT_3, 0);
+				writeRelayOutput(EN_GPIO_OUTPUT_4, 0);
+				//Set the states to S0
+				prog3State = S0;
+				prog4State = S0;
+				prog5State = S0;
+				//Update mode
+				currentMode = EN_MODE_B;
+			}
+
+		}
+		
+		//Update the status led
+		if(timerLED.tickDone){
+			handleStatusLed(tempVal);
 		}
 		
 		
