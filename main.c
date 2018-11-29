@@ -82,16 +82,18 @@ int main(void)
 			handleProgram2(!in2PinState, &prog2Count);
 		}
 		
+		
+		if(timer3.tickDone){
+			handleProgram3(tempVal);
+		}
+		
 		//Check the mode switch and if in prog B then disable temperature sensor routines
 		if(inModePinState == EN_MODE_A){
 			if(currentMode != EN_MODE_A){
 				//Set the current mode to A
 				currentMode = EN_MODE_A;
 			}
-			//In program A so execute temperature routines
-			if(timer3.tickDone){
-				handleProgram3(tempVal);
-			}
+			//In program A so execute temperature programs 4 and 5
 			
 			if(timer4.tickDone){
 				handleProgram4(tempVal);
@@ -118,9 +120,9 @@ int main(void)
 				writeRelayOutput(EN_GPIO_OUTPUT_3, 0);
 				writeRelayOutput(EN_GPIO_OUTPUT_4, 0);
 				//Set the states to S0
-				prog3State = S0;
 				prog4State = S0;
 				prog5State = S0;
+				prog6State = S0;
 				//Update mode
 				currentMode = EN_MODE_B;
 			}
