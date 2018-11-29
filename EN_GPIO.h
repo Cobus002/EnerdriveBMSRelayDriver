@@ -9,6 +9,8 @@
 #define EN_GPIO_INPUT_2		(uint8_t)1
 #define EN_GPIO_INPUT_3		(uint8_t)2
 #define EN_GPIO_INPUT_4		(uint8_t)3
+//Declare for later implementation
+typedef enum{INPUT_1, INPUT_2, INPUT_3, INPUT_4, INPUT_MODE} ENInput_t;
 
 //Declared for later implementation
 typedef enum {OUTPUT_1, OUTPUT_2, OUTPUT_3, OUTPUT_4, TOR_1, TOR_2, LATCH_ORANGE, LATCH_BROWN} ENOutput_t;
@@ -21,6 +23,10 @@ typedef enum {OUTPUT_1, OUTPUT_2, OUTPUT_3, OUTPUT_4, TOR_1, TOR_2, LATCH_ORANGE
 #define EN_GPIO_TOR_2		(uint8_t)9
 #define EN_GPIO_LATCH_0		(uint8_t)10
 #define EN_GPIO_LATCH_1		(uint8_t)11
+
+//Prog modes
+#define EN_PROGRAM_A		1
+#define EN_PROGRAM_B		0
 
 //Available output states
 #define EN_OUTPUT_HIGH		(uint8_t)1
@@ -35,6 +41,7 @@ typedef enum {OUTPUT_1, OUTPUT_2, OUTPUT_3, OUTPUT_4, TOR_1, TOR_2, LATCH_ORANGE
 #define EN_TEMP_MED			(uint16_t)184  //36C 
 #define EN_TEMP_LOW			(uint16_t)180  //0C
 
+//Initialization functions
 void initRelayOutputs();
 void initStatusLed();
 void initInputs();
@@ -44,12 +51,13 @@ void initLatchOutput();
 void checkRelayOutputs();
 void checkStatusLED();
 
-uint8_t readInput(uint8_t en_input);
+uint8_t readInput(ENInput_t en_input);
 
 uint16_t readTempSens();
 
 void writeRelayOutput(uint8_t en_output, uint8_t val);
-void writeLEDOutput(uint8_t red, uint8_t blue, uint8_t green);
+
+void writeLEDOutput(uint8_t blue, uint8_t green, uint8_t red);
 
 void toggleLEDOutput(uint8_t blue, uint8_t green, uint8_t red);
 

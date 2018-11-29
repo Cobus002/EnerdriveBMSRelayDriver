@@ -8,79 +8,8 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include "main.h"
 #include "EN_GPIO.h"
-
-//Temperature values for the temp sensor
-#define TEMP_3C		(uint8_t)109
-#define TEMP_35C	(uint8_t)190
-#define TEMP_45C	(uint8_t)210
-#define TEMP_55C	(uint8_t)230
-#define TEMP_65C	(uint8_t)234
-#define TEMP_70C	(uint8_t)240
-
-uint8_t OUT1_PIN = 3;
-uint8_t OUT2_PIN = 4;
-
-//typedef to store the timer stuff
-typedef struct timer{
-	uint16_t tickCount;
-	uint8_t tickActive;
-	uint8_t tickDone;
-}Timer;
-
-//Timers used in the programs
-Timer timer1;	//Program 1 timer
-Timer timer2;	//Program 2 timer
-Timer timer3;	//Program 3 timer
-Timer timer4;	//Not used
-Timer timer5;	//Program 5 timer
-Timer timer6;	//Program 6 timer
-Timer timerLED;  //LED timer
-
-//Enum to store the states
-typedef enum {S0, S1, S2, S3, S4, S5, S6, S7, S9} state_t;
-
-//Program state variables
-state_t prog1State = S0;
-state_t prog2State = S0;
-state_t prog3State = S0;	
-state_t prog4State = S0;	//Not used
-state_t prog5State = S0;
-state_t prog6State = S0;
-
-uint8_t tempCount = 0;
-uint16_t tempVal = 0;
-
-uint8_t ledState = 1;
-
-//Initialize the hardware timer used to set the 1 sec global timer
-void initTimer(void);
-
-//Initialize the software timer
-void initSoftTimer(Timer* softTimer);
-
-//Start a soft timer referenced by pointer for number of seconds
-void startSoftTimer(Timer* softTimer, uint16_t seconds);
-
-//Update the software timers, called by the global sec timer interrupt
-void updateSoftTimer(Timer* softTimer);
-
-//Handle the programs
-void handleProgram1(uint8_t in1PinState, uint8_t in2PinState, int* prog1Count);
-
-void handleProgram2(uint8_t in3PinState, int* prog2Count);
-
-//Program 3 handles temperature sensitive routines for temperatures greater than 35C and 45C
-void handleProgram3(uint16_t temp);
-
-//Program 5 handles temperature routines for temperatures greater than 55C
-void handleProgram5(uint16_t temp);
-
-//Program 6 handles temperature routines for temperatures less than 0C
-void handleProgram6(uint16_t temp);
-
-//Update the Status LED
-void handleStatusLed(uint16_t temp);
 
 
 int main(void)
@@ -102,6 +31,7 @@ int main(void)
 	sei();
 	
 	//Variables to store the input results
+	uint8_t inModePinState = EN_INPUT_HIGH;
 	uint8_t in0PinState = EN_INPUT_HIGH;
 	uint8_t in1PinState = EN_INPUT_HIGH;
 	uint8_t in2PinState = EN_INPUT_HIGH;
@@ -111,6 +41,7 @@ int main(void)
 	initSoftTimer(&timer1);
 	initSoftTimer(&timer2);
 	initSoftTimer(&timer3);
+	initSoftTimer(&timer4);
 	initSoftTimer(&timer5);
 	initSoftTimer(&timer6);
 	initSoftTimer(&timerLED);
@@ -134,9 +65,10 @@ int main(void)
 	{
 		//BEGIN WHILE LOOP
 		//Read the inputs
-		in0PinState = readInput(EN_GPIO_INPUT_1);
-		in1PinState = readInput(EN_GPIO_INPUT_2);
-		in2PinState = readInput(EN_GPIO_INPUT_3);
+		inModePinState = readInput(INPUT_MODE);
+		in0PinState = readInput(INPUT_1);
+		in1PinState = readInput(INPUT_2);
+		in2PinState = readInput(INPUT_3);
 		tempVal = readTempSens();
 		_delay_ms(1);
 		
@@ -148,20 +80,35 @@ int main(void)
 			handleProgram2(!in2PinState, &prog2Count);
 		}
 		
-		handleProgram3(tempVal);
-		
-		if(timer5.tickDone){
-			handleProgram5(tempVal);
-		}
-		
-		if(timer6.tickDone){
-			handleProgram6(tempVal);
-		}
-		
-		if(timerLED.tickDone){
-			handleStatusLed(tempVal);
+		//Check the mode switch and if in prog B then disable temperature sensor routines
+		if(inModePinState == EN_PROGRAM_A){
+			//In program A so execute temperature routines
+			if(timer3.tickDone){
+				handleProgram3(tempVal);
+			}
 			
+			if(timer4.tickDone){
+				handleProgram4(tempVal);
+			}
+			
+			if(timer5.tickDone){
+				handleProgram5(tempVal);
+			}
+			
+			if(timer6.tickDone){
+				handleProgram6(tempVal);
+			}
+			
+			if(timerLED.tickDone){
+				handleStatusLed(tempVal);
+			}
+		}else{
+			//Ensure all the temperature sensative routine states are in state S0 for status LED
+			prog3State = S0;
+			prog4State = S0;
+			prog5State = S0;
 		}
+		
 		
 		//END WHILE LOOP
 	}
@@ -188,6 +135,7 @@ void initTimer(void){
 	// enable global interrupts
 	sei();
 }
+
 //Used to update the sofTimers 
 void updateSoftTimer(Timer* tickTimer){
 	if(tickTimer->tickActive){
@@ -232,7 +180,7 @@ ISR(TIMER1_COMPA_vect){
 	
 }
 
-
+//Check inputs 1 and 2 then set TOR and OUTPUTS accordingly
 void handleProgram1(uint8_t in1PinState, uint8_t in2PinState, int* prog1Count){
 	//Check the state of program 1
 	switch(prog1State){
@@ -315,10 +263,12 @@ void handleProgram1(uint8_t in1PinState, uint8_t in2PinState, int* prog1Count){
 					prog1State = S6;
 				}
 			}else{
+#ifdef RE_ENABLE_LATCH_RELAY
 				//pulse latch relay brown
 				writeBatteryLatch(LATCH_BROWN, 1);
 				_delay_ms(1000);
 				writeBatteryLatch(LATCH_BROWN, 0);
+#endif
 				//Turn off OUTPUT 3
 				writeRelayOutput(EN_GPIO_OUTPUT_3, 0);
 				//Go back to state 0
@@ -390,36 +340,77 @@ void handleProgram2(uint8_t in3PinState, int* prog2Count){
 	}
 }
 
-//Handle the temp values up to 45C
+//Checks if temperature is greater than 35C then performs appropriate actions
 void handleProgram3(uint16_t temp){
 	switch (prog3State){
 		case S0:
 			if(temp > TEMP_35C){
 				//Turn on Output4
 				writeRelayOutput(EN_GPIO_OUTPUT_4, 1);
-			}else{
-				//Turn off output4
+				//Start 2 sec timer and go to state S1
+				startSoftTimer(&timer3, 2);
+				prog3State = S1;
+			}
+			break;
+		case S1:
+			if (temp < TEMP_35C){
+				//Turn off OUTPUT4
 				writeRelayOutput(EN_GPIO_OUTPUT_4, 0);
-			}
-			
-			if((temp > TEMP_35C)&&(temp < TEMP_45C)){
-				//Turn off TOR 1&2 and OUTPUT 1&2
-				writeRelayOutput(EN_GPIO_TOR_1, 0);
-				writeRelayOutput(EN_GPIO_TOR_2, 0);
-				writeRelayOutput(EN_GPIO_OUTPUT_1, 0);
-				writeRelayOutput(EN_GPIO_OUTPUT_2, 0);
-			}
-			if(temp > TEMP_45C){
-				//Turn on TOR 1&2 and OUTPUT 1&2
-				writeRelayOutput(EN_GPIO_TOR_1, 1);
-				writeRelayOutput(EN_GPIO_TOR_2, 1);
-				writeRelayOutput(EN_GPIO_OUTPUT_1, 1);
-				writeRelayOutput(EN_GPIO_OUTPUT_2, 1);
+				//Start 2 sec timer and go to state 0
+				startSoftTimer(&timer3, 2);
+				prog3State = S0;
+			}else{
+				//Ensure OUTPUT4 is on
+				writeRelayOutput(EN_GPIO_OUTPUT_4, 1);
+				//start 2 sec timer and stay in current state
+				startSoftTimer(&timer3, 2);
+				prog3State = S1;
 			}
 			break;
 	}
 }
 
+//Checks if the temperature is greater than 45C then performs appropriate actions
+void handleProgram4(uint16_t temp){
+	switch(prog4State){
+		case S0:
+			if(temp > TEMP_45C){
+				//Turn on TOR 1&2 and OUTPUT 1&2 
+				writeRelayOutput(EN_GPIO_TOR_1, 1);
+				writeRelayOutput(EN_GPIO_TOR_2, 1);
+				writeRelayOutput(EN_GPIO_OUTPUT_1, 1);
+				writeRelayOutput(EN_GPIO_OUTPUT_2, 1);
+				//Start 2 sec soft timer 
+				startSoftTimer(&timer4, 2);
+				prog4State = S1;
+			}
+			break;
+		case S1:
+			if(temp < TEMP_45C){
+				//Turn off TOR 1&2 and OUTPUT 1&2
+				writeRelayOutput(EN_GPIO_TOR_1, 0);
+				writeRelayOutput(EN_GPIO_TOR_2, 0);
+				writeRelayOutput(EN_GPIO_OUTPUT_1, 0);
+				writeRelayOutput(EN_GPIO_OUTPUT_2, 0);
+				//Start 2 sec timer and go back to state S0
+				startSoftTimer(&timer4, 2);
+				prog4State = S0;
+			}else{
+				//Temp is still high, ensure TOR 1&2 is on and OUTPUT 1&2
+				writeRelayOutput(EN_GPIO_TOR_1, 1);
+				writeRelayOutput(EN_GPIO_TOR_2, 1);
+				writeRelayOutput(EN_GPIO_OUTPUT_1, 1);
+				writeRelayOutput(EN_GPIO_OUTPUT_2, 1);
+				//Start 2 sec soft timer and stay in current state
+				startSoftTimer(&timer4, 2);
+				prog4State = S1;
+			}
+			break;
+		
+	}
+}
+
+//Checks if temperature is higher than 55C then performs appropriate actions
 void handleProgram5(uint16_t temp){
 	switch (prog5State){
 		case S0:
@@ -461,6 +452,7 @@ void handleProgram5(uint16_t temp){
 	}
 }
 
+//Checks if the temp is too Low (<3C) then performs actions accordingly
 void handleProgram6(uint16_t temp){
 	switch (prog6State){
 		case S0:

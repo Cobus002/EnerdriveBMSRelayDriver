@@ -44,26 +44,28 @@ void initTempSensor(){
 	
 }
 
-uint8_t readInput(uint8_t en_input){
+uint8_t readInput(ENInput_t en_input){
 	uint8_t temp = 0;
 	switch (en_input)
 	{
-	case EN_GPIO_INPUT_1:
+	case INPUT_1:
 		temp = PINC & (1<<5);
 		break;
-	case EN_GPIO_INPUT_2:
+	case INPUT_2:
 		temp = PIND & (1<<0);
 		break;
-	case EN_GPIO_INPUT_3:
+	case INPUT_3:
 		temp = PIND & (1<<1);
 		break;
-	case EN_GPIO_INPUT_4:
+	case INPUT_4:
 		temp = PIND & (1<<2);
+		break;
+	case INPUT_MODE:
+		temp = PINB & (1<<1);
 		break;
 	}
 	//Set temp to 1 if greater than 0
-	if (temp > 0)
-	{
+	if (temp > 0){
 		temp = 1;
 	}
 	
@@ -118,7 +120,7 @@ void writeLEDOutput(uint8_t red, uint8_t blue, uint8_t green){
 	
 }
 
-void toggleLEDOutput(uint8_t red, uint8_t blue, uint8_t green){
+void toggleLEDOutput(uint8_t blue, uint8_t green, uint8_t red){
 		red==1 ? (PORTB ^= (1<<5)):(PORTB &= ~(1<<5));
 		green==1 ? (PORTB ^= (1<<4)):(PORTB &= ~(1<<4));
 		blue==1 ? (PORTB ^= (1<<3)):(PORTB &= ~(1<<3));
