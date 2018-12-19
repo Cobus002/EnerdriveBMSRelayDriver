@@ -69,7 +69,7 @@ void handleProgram1(uint8_t in1PinState, uint8_t in2PinState, int* prog1Count);
 void handleProgram2(uint8_t in3PinState, int* prog2Count);
 
 //Program 3 handles temperature sensitive routines for temperatures greater than 35C
-void handleProgram3(uint16_t temp);
+void handleProgram3(uint16_t temp, uint8_t input1, uint8_t input2);
 
 //Program 4 handles temperature sensitive routines for temperatures greater than 45C
 void handleProgram4(uint16_t temp);

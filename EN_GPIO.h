@@ -3,13 +3,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 
-
 //Available Inputs
-#define EN_GPIO_INPUT_1		(uint8_t)0
-#define EN_GPIO_INPUT_2		(uint8_t)1
-#define EN_GPIO_INPUT_3		(uint8_t)2
-#define EN_GPIO_INPUT_4		(uint8_t)3
-//Declare for later implementation
 typedef enum{INPUT_1, INPUT_2, INPUT_3, INPUT_4, INPUT_MODE} ENInput_t;
 
 //Declared for later implementation

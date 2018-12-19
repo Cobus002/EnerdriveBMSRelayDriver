@@ -84,7 +84,7 @@ int main(void)
 		
 		
 		if(timer3.tickDone){
-			handleProgram3(tempVal);
+			handleProgram3(tempVal, !in0PinState, !in1PinState);
 		}
 		
 		//Check the mode switch and if in prog B then disable temperature sensor routines
@@ -366,10 +366,10 @@ void handleProgram2(uint8_t in3PinState, int* prog2Count){
 }
 
 //Checks if temperature is greater than 35C then performs appropriate actions
-void handleProgram3(uint16_t temp){
+void handleProgram3(uint16_t temp, uint8_t input1, uint8_t input2){
 	switch (prog3State){
 		case S0:
-			if(temp > TEMP_35C){
+			if(temp > TEMP_35C && (input1 && input2)){
 				//Turn on Output4
 				writeRelayOutput(EN_GPIO_OUTPUT_4, 1);
 				//Start 2 sec timer and go to state S1
@@ -385,8 +385,15 @@ void handleProgram3(uint16_t temp){
 				startSoftTimer(&timer3, 2);
 				prog3State = S0;
 			}else{
-				//Ensure OUTPUT4 is on
-				writeRelayOutput(EN_GPIO_OUTPUT_4, 1);
+				if(input1 && input2){
+					
+					//Ensure OUTPUT4 is on
+					writeRelayOutput(EN_GPIO_OUTPUT_4, 1);
+				}else{
+					//Ensure OUTPUT4 is off
+					writeRelayOutput(EN_GPIO_OUTPUT_4, 0);
+				}
+				
 				//start 2 sec timer and stay in current state
 				startSoftTimer(&timer3, 2);
 				prog3State = S1;
